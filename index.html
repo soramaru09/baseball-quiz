@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>読売ジャイアンツ クイズ王決定戦</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic Pro', 'Meiryo', sans-serif;
+      background: #0d0d1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 700px;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===== BACKGROUND ===== */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 85%, rgba(255,102,0,0.10) 0%, transparent 50%),
+        radial-gradient(circle at 85% 15%, rgba(255,102,0,0.07) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(0,0,60,0.5) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== ANIMATIONS ===== */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.07); }
+    }
+    @keyframes correctFlash {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-7px); }
+      40%      { transform: translateX(7px); }
+      60%      { transform: translateX(-4px); }
+      80%      { transform: translateX(4px); }
+    }
+    @keyframes confettiFall {
+      0%   { opacity: 1; top: -20px; }
+      100% { opacity: 0; top: 110vh; }
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 10px #ffcc00, 2px 2px 0 #993300; }
+      to   { text-shadow: 0 0 30px #ffcc00, 0 0 60px #ff6600, 2px 2px 0 #993300; }
+    }
+    @keyframes bounce {
+      from { transform: translateY(0) scale(1); }
+      to   { transform: translateY(-14px) scale(1.06); }
+    }
+    @keyframes angryShake {
+      0%   { transform: rotate(-4deg) scale(1); }
+      50%  { transform: rotate(4deg)  scale(1.06); }
+      100% { transform: rotate(-4deg) scale(1); }
+    }
+    @keyframes winPop {
+      0%   { transform: scale(0.4) rotate(-10deg); opacity: 0; }
+      60%  { transform: scale(1.1) rotate(3deg); opacity: 1; }
+      100% { transform: scale(1)   rotate(0deg); opacity: 1; }
+    }
+    @keyframes losePop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      60%  { transform: scale(1.1); opacity: 1; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+
+    .hidden { display: none !important; }
+
+    /* ===== TITLE SCREEN ===== */
+    #title-screen {
+      text-align: center;
+      animation: fadeIn 0.8s ease;
+    }
+
+    .title-ball {
+      font-size: 82px;
+      display: block;
+      margin-bottom: 4px;
+      filter: drop-shadow(0 0 18px rgba(255,102,0,0.9));
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .title-main {
+      font-size: 2.3rem;
+      font-weight: 900;
+      color: #ff6600;
+      text-shadow: 2px 2px 0 #000, 0 0 24px rgba(255,102,0,0.5);
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .title-sub {
+      font-size: 1.15rem;
+      color: #aaa;
+      letter-spacing: 4px;
+      margin-bottom: 28px;
+    }
+
+    .title-rule {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,102,0,0.25);
+      border-radius: 14px;
+      padding: 18px 26px;
+      margin-bottom: 30px;
+      color: #ccc;
+      font-size: 0.97rem;
+      line-height: 1.8;
+      text-align: left;
+    }
+
+    .title-rule strong { color: #ff8833; }
+
+    .title-rule ul {
+      margin: 8px 0 0 18px;
+    }
+
+    .btn-start {
+      background: linear-gradient(135deg, #ff6600, #cc3300);
+      color: #fff;
+      border: none;
+      padding: 16px 64px;
+      font-size: 1.45rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 24px rgba(255,102,0,0.55);
+      transition: all 0.2s;
+      letter-spacing: 3px;
+    }
+
+    .btn-start:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(255,102,0,0.7);
+    }
+
+    .btn-start:active { transform: translateY(0); }
+
+    /* ===== QUIZ SCREEN ===== */
+    #quiz-screen { animation: fadeIn 0.45s ease; }
+
+    .quiz-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      gap: 12px;
+    }
+
+    .q-num-badge {
+      background: #ff6600;
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.88rem;
+      padding: 5px 16px;
+      border-radius: 20px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(255,102,0,0.4);
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background: rgba(255,255,255,0.09);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6600, #ffcc44);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .streak-badge {
+      background: rgba(255,102,0,0.12);
+      border: 2px solid #ff6600;
+      border-radius: 20px;
+      padding: 4px 14px;
+      color: #ff8833;
+      font-weight: 700;
+      font-size: 0.88rem;
+      white-space: nowrap;
+    }
+
+    .question-card {
+      background: linear-gradient(135deg, #141428, #0f2a50);
+      border: 2px solid rgba(255,102,0,0.28);
+      border-radius: 16px;
+      padding: 26px 28px 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+    }
+
+    .question-text {
+      font-size: 1.18rem;
+      color: #f0f0f0;
+      line-height: 1.65;
+      font-weight: 600;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 0;
+    }
+
+    .choice-btn {
+      background: rgba(255,255,255,0.04);
+      border: 2px solid rgba(255,255,255,0.13);
+      border-radius: 12px;
+      padding: 16px 14px;
+      color: #ddd;
+      font-size: 0.99rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: left;
+      line-height: 1.45;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+      background: rgba(255,102,0,0.14);
+      border-color: #ff6600;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(255,102,0,0.25);
+    }
+
+    .choice-btn.correct {
+      background: rgba(0,210,100,0.18);
+      border-color: #00d064;
+      color: #00ff88;
+      animation: correctFlash 0.4s ease;
+    }
+
+    .choice-btn.wrong {
+      background: rgba(255,40,40,0.18);
+      border-color: #ff3030;
+      color: #ff7070;
+      animation: shake 0.42s ease;
+    }
+
+    .choice-btn.reveal {
+      background: rgba(0,180,80,0.10);
+      border-color: rgba(0,210,100,0.45);
+      color: #00cc66;
+    }
+
+    .choice-btn:disabled { cursor: not-allowed; }
+
+    .feedback-box {
+      margin-top: 14px;
+      padding: 13px 18px;
+      border-radius: 10px;
+      font-size: 0.96rem;
+      font-weight: 600;
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .feedback-box.ok {
+      background: rgba(0,210,100,0.12);
+      border: 1px solid rgba(0,210,100,0.35);
+      color: #00ee77;
+    }
+
+    .feedback-box.ng {
+      background: rgba(255,40,40,0.12);
+      border: 1px solid rgba(255,40,40,0.35);
+      color: #ff5555;
+    }
+
+    .btn-next {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      background: linear-gradient(135deg, #ff6600, #cc3300);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.18s;
+      box-shadow: 0 4px 14px rgba(255,102,0,0.35);
+    }
+
+    .btn-next:hover {
+      opacity: 0.92;
+      transform: translateY(-2px);
+    }
+
+    /* ===== RESULT: WIN ===== */
+    #result-screen { text-align: center; }
+
+    .win-wrap {
+      animation: winPop 0.65s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+
+    .win-trophy {
+      font-size: 90px;
+      display: block;
+      filter: drop-shadow(0 0 24px rgba(255,200,0,0.9));
+      animation: bounce 0.7s ease-in-out infinite alternate;
+      margin-bottom: 8px;
+    }
+
+    .win-firework-row {
+      font-size: 2.6rem;
+      letter-spacing: 8px;
+      margin-bottom: 4px;
+    }
+
+    .win-title {
+      font-size: 2.1rem;
+      font-weight: 900;
+      color: #ffdd00;
+      animation: glow 1.4s ease-in-out infinite alternate;
+      margin-bottom: 14px;
+    }
+
+    .win-box {
+      background: linear-gradient(135deg, rgba(255,102,0,0.18), rgba(255,200,0,0.12));
+      border: 2px solid rgba(255,210,0,0.45);
+      border-radius: 18px;
+      padding: 22px 28px;
+      margin: 0 0 24px;
+      color: #fff;
+      font-size: 1.15rem;
+      line-height: 1.8;
+    }
+
+    .win-box .highlight {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #ffdd00;
+      text-shadow: 0 0 12px rgba(255,200,0,0.7);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .win-stars-row {
+      font-size: 2.8rem;
+      letter-spacing: 6px;
+      margin-bottom: 20px;
+    }
+
+    /* ===== RESULT: LOSE ===== */
+    .lose-wrap {
+      animation: losePop 0.55s ease forwards;
+    }
+
+    .angry-emoji {
+      font-size: 110px;
+      display: block;
+      filter: drop-shadow(0 0 18px rgba(255,0,0,0.8));
+      animation: angryShake 0.28s ease-in-out infinite;
+      margin-bottom: 8px;
+    }
+
+    .lose-title {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: #ff2222;
+      text-shadow: 3px 3px 0 #660000, 0 0 20px rgba(255,0,0,0.7);
+      margin-bottom: 14px;
+    }
+
+    .lose-box {
+      background: rgba(180,0,0,0.13);
+      border: 2px solid rgba(255,50,50,0.38);
+      border-radius: 18px;
+      padding: 22px 28px;
+      margin: 0 0 24px;
+      color: #ffcccc;
+      font-size: 1.12rem;
+      line-height: 1.8;
+    }
+
+    .lose-box .highlight {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: #ff4444;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .score-chip {
+      display: inline-block;
+      background: rgba(255,0,0,0.10);
+      border: 1px solid rgba(255,60,60,0.3);
+      border-radius: 20px;
+      padding: 4px 18px;
+      margin-top: 10px;
+      color: #ff9999;
+      font-size: 0.9rem;
+    }
+
+    .btn-retry {
+      border: none;
+      padding: 15px 52px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 2px;
+    }
+
+    .btn-retry.win {
+      background: linear-gradient(135deg, #ff6600, #cc3300);
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(255,102,0,0.5);
+    }
+
+    .btn-retry.lose {
+      background: linear-gradient(135deg, #cc0000, #880000);
+      color: #fff;
+      box-shadow: 0 6px 24px rgba(200,0,0,0.45);
+    }
+
+    .btn-retry:hover { transform: translateY(-3px); opacity: 0.9; }
+
+    /* ===== CONFETTI ===== */
+    .confetti-piece {
+      position: fixed;
+      top: -20px;
+      opacity: 0;
+      animation: confettiFall linear forwards;
+      z-index: 999;
+      border-radius: 2px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE SCREEN -->
+  <div id="title-screen">
+    <span class="title-ball">⚾</span>
+    <div class="title-main">読売ジャイアンツ</div>
+    <div class="title-sub">〜 クイズ王決定戦 〜</div>
+    <div class="title-rule">
+      <strong>ルール：</strong>
+      <ul>
+        <li>全 <strong>10問</strong>、4択クイズに挑戦！</li>
+        <li>10問全問正解 → <strong>本物のジャイアンツファン</strong> 認定🏆</li>
+        <li>1問でも間違えると → <strong>即終了。覚悟せよ！</strong>😡</li>
+      </ul>
+    </div>
+    <button class="btn-start" onclick="startQuiz()">⚡ START ⚡</button>
+  </div>
+
+  <!-- QUIZ SCREEN -->
+  <div id="quiz-screen" class="hidden">
+    <div class="quiz-header">
+      <div class="q-num-badge" id="q-num">第1問</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="streak-badge" id="streak-badge">🔥 0連続</div>
+    </div>
+    <div class="question-card">
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="choices" id="choices"></div>
+    <div id="feedback-box" class="hidden"></div>
+    <button class="btn-next hidden" id="btn-next" onclick="nextQuestion()">次の問題へ →</button>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="result-screen" class="hidden"></div>
+
+</div>
+
+<script>
+const ALL_QUESTIONS = [
+  {
+    q: "読売ジャイアンツの本拠地球場はどこですか？",
+    c: ["神宮球場", "東京ドーム", "横浜スタジアム", "ZOZOマリンスタジアム"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツが創設されたのは何年ですか？",
+    c: ["1930年", "1932年", "1934年", "1936年"],
+    a: 2
+  },
+  {
+    q: "「ミスタープロ野球」と呼ばれた読売ジャイアンツの伝説的選手は誰ですか？",
+    c: ["王貞治", "長嶋茂雄", "川上哲治", "松井秀喜"],
+    a: 1
+  },
+  {
+    q: "長嶋茂雄の現役時代の背番号は何番ですか？",
+    c: ["1番", "2番", "3番", "4番"],
+    a: 2
+  },
+  {
+    q: "王貞治が打ち立てたプロ野球通算本塁打の世界記録は何本ですか？",
+    c: ["756本", "800本", "868本", "900本"],
+    a: 2
+  },
+  {
+    q: "9年連続日本一「V9」を達成したときの読売ジャイアンツの監督は誰ですか？",
+    c: ["水原茂", "川上哲治", "長嶋茂雄", "王貞治"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツの球団歌のタイトルは何ですか？",
+    c: ["炎のファイター", "闘魂こめて", "勝利の歌", "ジャイアンツの誇り"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツが所属するリーグはどれですか？",
+    c: ["パシフィック・リーグ", "セントラル・リーグ", "イースタン・リーグ", "ウエスタン・リーグ"],
+    a: 1
+  },
+  {
+    q: "松井秀喜の現役時代の背番号は何番ですか？",
+    c: ["3番", "55番", "44番", "33番"],
+    a: 1
+  },
+  {
+    q: "沢村栄治の永久欠番は何番ですか？",
+    c: ["11番", "14番", "16番", "18番"],
+    a: 1
+  },
+  {
+    q: "王貞治の現役時代の背番号は何番ですか？",
+    c: ["1番", "3番", "5番", "7番"],
+    a: 0
+  },
+  {
+    q: "王貞治の「一本足打法」の特徴として正しいのはどれですか？",
+    c: ["投球時に片足を上げる", "打撃時に片足を上げてバランスをとる", "走塁時に片足でジャンプする", "守備時に片足立ちで構える"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツのチームカラーに含まれる色の組み合わせはどれですか？",
+    c: ["青と白", "オレンジと黒と白", "赤と金", "黄色と青"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツの前身となった球団名は何ですか？",
+    c: ["東京セネタース", "大阪タイガース", "大日本東京野球倶楽部", "東京巨人軍"],
+    a: 2
+  },
+  {
+    q: "ジャイアンツからMLBニューヨーク・ヤンキースに移籍して大活躍した選手は誰ですか？",
+    c: ["桑田真澄", "斎藤雅樹", "松井秀喜", "上原浩治"],
+    a: 2
+  },
+  {
+    q: "東京ドームの別名（愛称）として知られるのはどれですか？",
+    c: ["ビッグエッグ", "ビッグドーム", "スーパードーム", "ジャイアンツドーム"],
+    a: 0
+  },
+  {
+    q: "坂本勇人が主に守るポジションはどこですか？",
+    c: ["二塁手", "三塁手", "遊撃手（ショート）", "右翼手"],
+    a: 2
+  },
+  {
+    q: "読売ジャイアンツの「G」マークのGは何の頭文字ですか？",
+    c: ["Grand", "Giants", "Glory", "Golden"],
+    a: 1
+  },
+  {
+    q: "長嶋茂雄の引退試合でのセリフとして有名な言葉はどれですか？",
+    c: ["「さらばジャイアンツ」", "「我が巨人軍は永久に不滅です」", "「ありがとうございました」", "「これからも巨人を応援してください」"],
+    a: 1
+  },
+  {
+    q: "読売ジャイアンツが日本シリーズを最初に優勝した年代はいつですか？",
+    c: ["1940年代", "1950年代", "1960年代", "1970年代"],
+    a: 1
+  }
+];
+
+let questions = [];
+let current = 0;
+let streak = 0;
+let answered = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  questions = shuffle(ALL_QUESTIONS).slice(0, 10);
+  current = 0;
+  streak = 0;
+  answered = false;
+
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('result-screen').classList.add('hidden');
+  document.getElementById('result-screen').innerHTML = '';
+  document.getElementById('quiz-screen').classList.remove('hidden');
+
+  showQuestion();
+}
+
+function showQuestion() {
+  answered = false;
+  const q = questions[current];
+
+  document.getElementById('q-num').textContent = `第${current + 1}問`;
+  document.getElementById('progress-fill').style.width = `${(current / 10) * 100}%`;
+  document.getElementById('streak-badge').textContent = `🔥 ${streak}連続`;
+  document.getElementById('question-text').textContent = q.q;
+
+  const fb = document.getElementById('feedback-box');
+  fb.className = 'hidden';
+  fb.textContent = '';
+
+  document.getElementById('btn-next').classList.add('hidden');
+
+  const labels = ['Ａ', 'Ｂ', 'Ｃ', 'Ｄ'];
+  const choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+  q.c.forEach((text, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = `${labels[i]}．${text}`;
+    btn.onclick = () => selectAnswer(i);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function selectAnswer(idx) {
+  if (answered) return;
+  answered = true;
+
+  const q = questions[current];
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(b => b.disabled = true);
+
+  const fb = document.getElementById('feedback-box');
+  fb.classList.remove('hidden');
+
+  if (idx === q.a) {
+    btns[idx].classList.add('correct');
+    streak++;
+    fb.className = 'feedback-box ok';
+    fb.textContent = '⭕ 正解！ ' + ['さすが！', '完璧！', 'その通り！', 'よく知ってる！', 'ナイス！', '完璧な回答！'][Math.floor(Math.random() * 6)];
+
+    if (current === 9) {
+      // All 10 correct!
+      document.getElementById('progress-fill').style.width = '100%';
+      setTimeout(() => showWin(), 1100);
+      return;
+    }
+    document.getElementById('btn-next').classList.remove('hidden');
+  } else {
+    btns[idx].classList.add('wrong');
+    btns[q.a].classList.add('reveal');
+    fb.className = 'feedback-box ng';
+    fb.textContent = `❌ 不正解！　正解は「${q.c[q.a]}」でした。`;
+    setTimeout(() => showLose(), 1500);
+  }
+}
+
+function nextQuestion() {
+  current++;
+  showQuestion();
+}
+
+function showWin() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  const res = document.getElementById('result-screen');
+  res.classList.remove('hidden');
+  res.innerHTML = `
+    <div class="win-wrap">
+      <div class="win-firework-row">🎆🎇✨🎆🎇</div>
+      <span class="win-trophy">🏆</span>
+      <div class="win-firework-row">🎉🎊🎉🎊🎉</div>
+      <div class="win-title">完全制覇！！！</div>
+      <div class="win-box">
+        <span class="highlight">おめでとう！<br>あなたは本当のジャイアンツファンです！</span>
+        10問全問正解、見事な快挙！<br>
+        球団の歴史と選手を知り尽くした<br>
+        真の <strong style="color:#ffcc00;">巨人魂</strong> の持ち主です！⚾🔥<br><br>
+        <span style="font-size:2rem;">🏅🌟🏅🌟🏅</span>
+      </div>
+      <div class="win-stars-row">⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐</div>
+      <button class="btn-retry win" onclick="startQuiz()">もう一度挑戦！</button>
+    </div>
+  `;
+  launchConfetti();
+}
+
+function showLose() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  const res = document.getElementById('result-screen');
+  res.classList.remove('hidden');
+  res.innerHTML = `
+    <div class="lose-wrap">
+      <span class="angry-emoji">😡</span>
+      <div class="lose-title">怒！！！💢</div>
+      <div class="lose-box">
+        <span class="highlight">あなたは偽ジャイアンツファンです。怒！</span>
+        ${current + 1}問目で間違えるとは何たる失態！<br>
+        本物のジャイアンツファンを名乗るなら<br>
+        もっとしっかり勉強しなさい！💢💢💢<br><br>
+        <span style="font-size:2rem">😤😤😤</span>
+        <div class="score-chip">正答数：${streak} / 10問</div>
+      </div>
+      <button class="btn-retry lose" onclick="startQuiz()">出直してくる！</button>
+    </div>
+  `;
+}
+
+function launchConfetti() {
+  const colors = ['#ff6600','#ffcc00','#ffffff','#ff3300','#ffaa33','#ffe066','#ff8800'];
+  for (let i = 0; i < 100; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      width: ${6 + Math.random() * 9}px;
+      height: ${11 + Math.random() * 14}px;
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      animation-duration: ${2.2 + Math.random() * 3.2}s;
+      animation-delay: ${Math.random() * 2.5}s;
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 7000);
+  }
+}
+</script>
+</body>
+</html>
